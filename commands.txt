@@ -1,0 +1,61 @@
+=== OnboardOps Command Log ===
+
+getent group devteam
+
+useradd -m -s /bin/bash dev1
+useradd -m -s /bin/bash dev2
+useradd -m -s /bin/bash dev3
+
+usermod -aG devteam dev1
+usermod -aG devteam dev2
+usermod -aG devteam dev3
+
+chage -M 60 -W 7 -d 0 dev1
+chage -M 60 -W 7 -d 0 dev2
+chage -M 60 -W 7 -d 0 dev3
+
+visudo -f /etc/sudoers.d/dev1
+
+dev1 ALL=(ALL) ALL
+
+visudo -c
+
+chmod 0440 /etc/sudoers.d/dev1
+
+visudo -c
+
+mkdir -p /shared/project
+chown root:devteam /shared/project
+chmod 3770 /shared/project
+
+ls -ld /shared/project
+
+su - dev1
+umask 0007
+touch /shared/project/dev1file
+ls -l /shared/project/dev1file
+exit
+
+su - dev2
+umask 0007
+touch /shared/project/dev2file
+ls -l /shared/project/dev2file
+rm /shared/project/dev1file
+ls -l /shared/project
+exit
+
+id dev1
+id dev2
+id dev3
+
+sudo -l -U dev1
+sudo -l -U dev2
+sudo -l -U dev3
+
+chage -l dev1
+chage -l dev2
+chage -l dev3
+
+ls -ld /shared/project
+ls -l /shared/project
+
