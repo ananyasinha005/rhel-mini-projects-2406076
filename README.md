@@ -1,57 +1,62 @@
-# OnboardOps – RHEL 10 Provisioning Kit
+# DiskDetective — RHEL Storage Audit
 
-## 1. Project Overview
+## Objective
+Perform a storage audit on RHEL, identify large and stale files, test hard and symbolic links, demonstrate Linux redirection and pipelines, and create a cold archive on a second disk.
 
-OnboardOps is a RHEL 10 system administration project that demonstrates
-user provisioning, group management, password policies, sudo access,
-shared directory permissions, and persistent umask configuration.
+## Storage Audit
+The following commands were used:
+- `lsblk` — identify available disks and partitions
+- `df -h` — check filesystem usage
+- `du` — identify directories using storage
+- `find -size +100M` — identify files larger than 100 MB
+- `find -mtime +180` — identify files older than 180 days
+- `find -user dev1` — identify files owned by dev1
 
-The project is implemented on a RHEL 10 virtual machine.
+## Test Data
+Controlled test files were created under `/data`:
+- `final_cut_v3.mp4` — 150 MB
+- `raw_footage_2024.mov` — 200 MB
+- `old_project_backup.mov` — 300 days old
+- `abandoned_edit.mp4` — 250 days old
+- `recent_work.mp4` — 10 days old
+- `dev1_project.mov` — owned by dev1
 
----
+## Hard Link and Symbolic Link Test
+A hard link and symbolic link were created for `testfile.txt`.
 
-## 2. Objectives
+The hard link continued to work after the original file was deleted because it referenced the same inode.
 
-The project demonstrates:
+The symbolic link failed after the original file was deleted because it referenced the original pathname.
 
-- Creation and management of the `devteam` group
-- Creation of three user accounts: `dev1`, `dev2`, and `dev3`
-- Supplementary group membership
-- Password aging and first-login password change
-- Least-privilege sudo configuration
-- SGID and sticky-bit directory permissions
-- Group-writable files with restricted access to others
-- Persistent umask configuration
-- Verification using Linux administration commands
+## Redirection and Pipelines
+The project demonstrated:
+- `>` for output redirection
+- `>>` for appending
+- `|` for pipelines
+- `tee` for writing and displaying output
+- `sort` for sorting results
+- `head` for limiting output
+- `wc -l` for counting lines
+- `2>/dev/null` for discarding error output
 
----
+## Cold Archive
+A second 2 GB disk `/dev/nvme0n2` was added to the RHEL VM.
 
-## 3. Users and Group
+It was formatted with ext4 and mounted at:
 
-The project uses the following accounts:
+`/mnt/coldarchive`
 
-| User | Primary Purpose | Supplementary Group |
-|------|-----------------|---------------------|
-| dev1 | Development user with sudo access | devteam |
-| dev2 | Development user | devteam |
-| dev3 | Development user | devteam |
+Stale files older than 180 days were copied to the cold archive.
 
-The `devteam` group is used for controlled access to shared project
-resources.
+The mount was verified using `df -h` and `mount | grep coldarchive`.
 
----
+## Safety
+No system files were deleted during the audit. The stale-file search was used to identify candidates for archival, not automatic deletion.
 
-## 4. Password Policy
+SELinux and firewalld were not disabled.
 
-Each project user is configured with:
-
-- Maximum password age: 60 days
-- Password expiry warning: 7 days
-- Password change required at first login
-
-The configuration is verified using:
-
-```bash
-chage -l dev1
-chage -l dev2
-chage -l dev3
+## Deliverables
+- `storage_audit.txt`
+- `commands.txt`
+- `README.md`
+- `file_list.txt`

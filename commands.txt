@@ -1,61 +1,111 @@
-=== OnboardOps Command Log ===
+===== DISKDETECTIVE COMMANDS =====
 
-getent group devteam
+# Check storage layout
+lsblk
 
-useradd -m -s /bin/bash dev1
-useradd -m -s /bin/bash dev2
-useradd -m -s /bin/bash dev3
+# Check filesystem usage
+df -h
 
-usermod -aG devteam dev1
-usermod -aG devteam dev2
-usermod -aG devteam dev3
+# Check directory usage
+sudo du -sh /home/* /var/* /opt/* 2>/dev/null | sort -rh
 
-chage -M 60 -W 7 -d 0 dev1
-chage -M 60 -W 7 -d 0 dev2
-chage -M 60 -W 7 -d 0 dev3
+# Find files larger than 100 MB
+sudo find / -type f -size +100M 2>/dev/null
 
-visudo -f /etc/sudoers.d/dev1
+# Find large files on the main filesystem
+sudo find / -xdev -type f -size +100M -printf '%s %p\n' 2>/dev/null | sort -nr
 
-dev1 ALL=(ALL) ALL
+# Find files older than 180 days
+sudo find / -xdev -type f -mtime +180 2>/dev/null
 
-visudo -c
+# Find first 20 stale files
+sudo find / -xdev -type f -mtime +180 2>/dev/null | head -20
 
-chmod 0440 /etc/sudoers.d/dev1
+# Find files owned by dev1
+sudo find / -xdev -type f -user dev1 2>/dev/null
 
-visudo -c
+# Create test directories
+sudo mkdir -p /data/renders /data/footage
 
-mkdir -p /shared/project
-chown root:devteam /shared/project
-chmod 3770 /shared/project
+# Create 150 MB test file
+sudo dd if=/dev/zero of=/data/renders/final_cut_v3.mp4 bs=1M count=150
 
-ls -ld /shared/project
+# Create 200 MB test file
+sudo dd if=/dev/zero of=/data/footage/raw_footage_2024.mov bs=1M count=200
 
-su - dev1
-umask 0007
-touch /shared/project/dev1file
-ls -l /shared/project/dev1file
-exit
+# Create stale files
+sudo touch -d "300 days ago" /data/footage/old_project_backup.mov
+sudo touch -d "250 days ago" /data/renders/abandoned_edit.mp4
+sudo touch -d "10 days ago" /data/renders/recent_work.mp4
 
-su - dev2
-umask 0007
-touch /shared/project/dev2file
-ls -l /shared/project/dev2file
-rm /shared/project/dev1file
-ls -l /shared/project
-exit
+# Create file owned by dev1
+sudo touch /data/footage/dev1_project.mov
+sudo chown dev1 /data/footage/dev1_project.mov
 
-id dev1
-id dev2
-id dev3
+# Verify test data
+ls -lh /data/renders /data/footage
 
-sudo -l -U dev1
-sudo -l -U dev2
-sudo -l -U dev3
+# Large-file audit
+sudo find /data -type f -size +100M 2>/dev/null
 
-chage -l dev1
-chage -l dev2
-chage -l dev3
+# Stale-file audit
+sudo find /data -type f -mtime +180 2>/dev/null
 
-ls -ld /shared/project
-ls -l /shared/project
+# Ownership audit
+sudo find /data -type f -user dev1 2>/dev/null
 
+# Hard and symbolic links
+echo "original content" | sudo tee /data/testfile.txt
+sudo ln /data/testfile.txt /data/hardlink.txt
+sudo ln -s /data/testfile.txt /data/symlink.txt
+ls -li /data/testfile.txt /data/hardlink.txt /data/symlink.txt
+
+# Delete original
+sudo rm /data/testfile.txt
+
+# Test hard link
+cat /data/hardlink.txt
+
+# Test symbolic link
+cat /data/symlink.txt
+
+# Redirection
+sudo find /data -type f 2>/dev/null > /root/DiskDetective/file_list.txt
+
+# Append using tee
+date | sudo tee -a /root/DiskDetective/file_list.txt
+
+# Sort, head and discard errors
+sudo du -sh /data/* 2>/dev/null | sort -rh | head -10
+
+# Count files
+sudo find /data -type f 2>/dev/null | wc -l
+
+# Calculate reclaimable space
+sudo find /data -type f -mtime +180 -exec du -ch {} + 2>/dev/null | tail -1
+
+# Add measurable data to stale file
+sudo dd if=/dev/zero of=/data/footage/old_project_backup.mov bs=1M count=1
+sudo touch -d "300 days ago" /data/footage/old_project_backup.mov
+
+# Add second disk and verify
+lsblk
+sudo mkfs.ext4 /dev/nvme0n2
+sudo mkdir -p /mnt/coldarchive
+sudo mount /dev/nvme0n2 /mnt/coldarchive
+df -h /mnt/coldarchive
+
+# Copy stale files to cold archive
+sudo find /data -type f -mtime +180 -exec cp {} /mnt/coldarchive/ \;
+
+# Verify archive
+ls -lh /mnt/coldarchive
+mount | grep coldarchive
+
+# Create storage audit report
+sudo tee /root/DiskDetective/storage_audit.txt
+
+# Verify report
+sudo ls -lh /root/DiskDetective/storage_audit.txt
+sudo cat /root/DiskDetective/storage_audit.txt
+sudo head -15 /root/DiskDetective/storage_audit.txt
